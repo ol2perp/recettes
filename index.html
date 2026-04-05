@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Mes Recettes</title>
+<style>
+:root {
+  --bg: #FAF7F2;
+  --card: #FFFFFF;
+  --text: #2C2416;
+  --text2: #6B5D4F;
+  --accent: #C4601D;
+  --accent-light: #F0DDD0;
+  --border: #E8E0D6;
+  --green: #4A7C59;
+  --green-light: #E8F2EB;
+  --red: #B33A3A;
+  --badge-perso: #C4601D;
+  --badge-chef: #7B6AAE;
+  --badge-basique: #4A7C59;
+  --shadow: 0 1px 3px rgba(44,36,22,.08);
+  --radius: 10px;
+  --font: -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --max-w: 800px;
+  --nav-h: 56px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size:16px; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100dvh; padding-bottom:calc(var(--nav-h) + var(--safe-b) + 8px); }
+
+/* NAV */
+nav { position:fixed; bottom:0; left:0; right:0; height:calc(var(--nav-h) + var(--safe-b)); background:var(--card); border-top:1px solid var(--border); display:flex; justify-content:center; z-index:100; padding-bottom:var(--safe-b); }
+nav .nav-inner { display:flex; width:100%; max-width:var(--max-w); }
+nav button { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:none; background:none; color:var(--text2); font-size:10px; font-family:var(--font); cursor:pointer; transition:color .2s; padding:6px 0; }
+nav button .nav-icon { font-size:22px; line-height:1; }
+nav button.active { color:var(--accent); }
+
+/* HEADER */
+header { position:sticky; top:0; z-index:50; background:var(--bg); padding:12px 16px 8px; max-width:var(--max-w); margin:0 auto; }
+header h1 { font-size:22px; font-weight:700; letter-spacing:-.3px; }
+header .search-wrap { margin-top:8px; position:relative; }
+header input[type="search"] { width:100%; padding:10px 12px 10px 36px; border:1px solid var(--border); border-radius:8px; font-size:15px; background:var(--card); color:var(--text); font-family:var(--font); outline:none; }
+header input[type="search"]:focus { border-color:var(--accent); }
+header .search-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text2); font-size:16px; pointer-events:none; }
+
+/* MAIN */
+main { max-width:var(--max-w); margin:0 auto; padding:0 16px 16px; }
+
+/* VIEWS */
+.view { display:none; }
+.view.active { display:block; }
+
+/* RECIPE LIST */
+.recipe-grid { display:flex; flex-direction:column; gap:10px; }
+.recipe-card { background:var(--card); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); cursor:pointer; display:flex; align-items:center; gap:12px; border:1px solid var(--border); transition:border-color .15s; }
+.recipe-card:active { border-color:var(--accent); }
+.recipe-card .rc-emoji { font-size:32px; flex-shrink:0; width:44px; text-align:center; }
+.recipe-card .rc-info { flex:1; min-width:0; }
+.recipe-card .rc-name { font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.recipe-card .rc-meta { font-size:12px; color:var(--text2); margin-top:3px; display:flex; gap:10px; align-items:center; }
+.recipe-card .rc-badge { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; padding:2px 7px; border-radius:4px; color:#fff; }
+.badge-perso { background:var(--badge-perso); }
+.badge-chef { background:var(--badge-chef); }
+.badge-basique { background:var(--badge-basique); }
+.recipe-card .rc-arrow { color:var(--text2); font-size:18px; flex-shrink:0; }
+.variant-indicator { font-size:11px; color:var(--accent); margin-top:2px; }
+
+/* RECIPE DETAIL */
+.detail-header { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.detail-header .back-btn { border:none; background:none; font-size:24px; cursor:pointer; color:var(--accent); padding:4px; }
+.detail-header h2 { font-size:20px; font-weight:700; flex:1; }
+.detail-header .edit-btn { border:none; background:none; font-size:20px; cursor:pointer; color:var(--text2); padding:4px; }
+
+.detail-meta { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+.detail-meta .dm-item { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:13px; display:flex; align-items:center; gap:6px; }
+.dm-item .dm-icon { font-size:16px; }
+
+/* Portions control */
+.portions-ctrl { display:flex; align-items:center; gap:8px; }
+.portions-ctrl button { width:30px; height:30px; border-radius:50%; border:1px solid var(--border); background:var(--card); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:700; }
+.portions-ctrl button:active { background:var(--accent-light); }
+.portions-ctrl span { font-weight:600; min-width:20px; text-align:center; }
+
+/* Sections */
+.section-title { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--accent); margin:20px 0 10px; display:flex; align-items:center; gap:8px; }
+.section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* Note box */
+.note-box { background:var(--accent-light); border-radius:8px; padding:12px 14px; font-size:13px; color:var(--text); line-height:1.5; margin-bottom:16px; border-left:3px solid var(--accent); }
+
+/* Ingredients */
+.ingredient-list { list-style:none; }
+.ingredient-list li { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:14px; line-height:1.4; }
+.ingredient-list li:last-child { border-bottom:none; }
+.ingredient-list input[type="checkbox"] { width:20px; height:20px; accent-color:var(--green); flex-shrink:0; cursor:pointer; }
+.ingredient-list .checked { text-decoration:line-through; color:var(--text2); }
+
+/* Steps */
+.step-list { list-style:none; counter-reset:steps; }
+.step-list li { padding:12px 0; border-bottom:1px solid var(--border); display:flex; gap:12px; font-size:14px; line-height:1.6; }
+.step-list li:last-child { border-bottom:none; }
+.step-list .step-num { width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.step-list .step-text { flex:1; }
+
+/* Timer */
+.timer-bar { position:sticky; top:0; z-index:40; background:var(--card); border-bottom:1px solid var(--border); padding:10px 16px; margin:-0px -16px 16px; display:flex; align-items:center; gap:10px; }
+.timer-bar .timer-display { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; flex:1; text-align:center; }
+.timer-bar button { width:42px; height:42px; border-radius:50%; border:none; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; }
+.timer-bar .timer-start { background:var(--green); color:#fff; }
+.timer-bar .timer-pause { background:var(--accent); color:#fff; }
+.timer-bar .timer-reset { background:var(--border); color:var(--text2); }
+.timer-input-wrap { display:flex; align-items:center; gap:6px; }
+.timer-input-wrap input { width:60px; padding:6px; text-align:center; border:1px solid var(--border); border-radius:6px; font-size:16px; font-family:var(--font); }
+.timer-input-wrap span { font-size:13px; color:var(--text2); }
+.timer-alert { animation: pulse .5s ease-in-out infinite alternate; }
+@keyframes pulse { from{opacity:1} to{opacity:.3} }
+
+/* Variants */
+.variant-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.variant-card { background:var(--card); border:1px dashed var(--accent); border-radius:8px; padding:12px; cursor:pointer; transition:background .15s; }
+.variant-card:active { background:var(--accent-light); }
+.variant-card h4 { font-size:14px; font-weight:600; }
+.variant-card p { font-size:12px; color:var(--text2); margin-top:4px; }
+
+/* EDIT FORM */
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:4px; color:var(--text2); }
+.form-group input, .form-group textarea, .form-group select { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:var(--font); background:var(--card); color:var(--text); }
+.form-group textarea { min-height:100px; resize:vertical; line-height:1.5; }
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline:none; border-color:var(--accent); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:12px 20px; border:none; border-radius:8px; font-size:14px; font-weight:600; font-family:var(--font); cursor:pointer; transition:opacity .15s; }
+.btn:active { opacity:.8; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-secondary { background:var(--border); color:var(--text); }
+.btn-danger { background:var(--red); color:#fff; }
+.btn-block { width:100%; }
+.btn-row { display:flex; gap:8px; margin-top:16px; }
+
+/* LINKS */
+.link-category { margin-bottom:20px; }
+.link-category h3 { font-size:15px; font-weight:700; margin-bottom:8px; }
+.link-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.link-item:last-child { border-bottom:none; }
+.link-item a { color:var(--accent); font-size:14px; text-decoration:none; font-weight:500; flex:1; }
+.link-item .link-cat { font-size:11px; color:var(--text2); background:var(--accent-light); padding:2px 6px; border-radius:4px; }
+
+/* MODIF FORM */
+.modif-form { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-top:16px; }
+.modif-form h3 { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+
+/* EMPTY STATE */
+.empty-state { text-align:center; padding:40px 20px; color:var(--text2); }
+.empty-state .empty-icon { font-size:48px; margin-bottom:12px; }
+.empty-state p { font-size:14px; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; display:none; align-items:flex-end; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--card); border-radius:16px 16px 0 0; padding:20px 16px calc(20px + var(--safe-b)); width:100%; max-width:var(--max-w); max-height:85dvh; overflow-y:auto; }
+.modal h3 { font-size:17px; font-weight:700; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+.modal .close-modal { border:none; background:none; font-size:22px; cursor:pointer; color:var(--text2); }
+
+/* Responsive */
+@media (min-width:600px) {
+  .recipe-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+}
+@media (min-width:500px) {
+  .timer-bar { border-radius:var(--radius); border:1px solid var(--border); margin:0 0 16px; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+
+/* Toast */
+.toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; padding:10px 20px; border-radius:8px; font-size:13px; z-index:300; opacity:0; transition:opacity .3s; pointer-events:none; }
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <button class="active" data-view="list" onclick="switchView('list')">
+      <span class="nav-icon">📖</span>Recettes
+    </button>
+    <button data-view="links" onclick="switchView('links')">
+      <span class="nav-icon">🔗</span>Liens
+    </button>
+    <button data-view="edit" onclick="switchView('edit')">
+      <span class="nav-icon">✏️</span>Éditer
+    </button>
+  </div>
+</nav>
+
+<!-- LIST VIEW -->
+<div class="view active" id="view-list">
+  <header>
+    <h1>📖 Mes Recettes</h1>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="search" placeholder="Rechercher une recette…" oninput="filterRecipes()">
+    </div>
+  </header>
+  <main>
+    <div class="recipe-grid" id="recipe-grid"></div>
+  </main>
+</div>
+
+<!-- DETAIL VIEW -->
+<div class="view" id="view-detail">
+  <header>
+    <div class="detail-header">
+      <button class="back-btn" onclick="switchView('list')">‹</button>
+      <h2 id="detail-title"></h2>
+      <button class="edit-btn" onclick="editCurrentRecipe()" title="Modifier">✏️</button>
+    </div>
+  </header>
+  <main id="detail-content"></main>
+</div>
+
+<!-- LINKS VIEW -->
+<div class="view" id="view-links">
+  <header><h1>🔗 Liens Utiles</h1></header>
+  <main id="links-content"></main>
+</div>
+
+<!-- EDIT VIEW -->
+<div class="view" id="view-edit">
+  <header><h1>✏️ Édition</h1></header>
+  <main id="edit-content"></main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const RECIPES = [
+  {
+    id: 1,
+    emoji: "🥚",
+    name: "Omelette Pascale à la Catalane",
+    time: 70,
+    servings: 8,
+    type: "perso",
+    ingredients: [
+      "16 œufs frais fermiers",
+      "4 c. à soupe d'huile d'olive vierge extra",
+      "1 beau bouquet de persil plat frais",
+      "Sel fin et poivre noir du moulin — PM",
+      "300 g de ventrèche (poitrine de porc salée)",
+      "300 g de saucisse fraîche catalane (longanisse)",
+      "2 boudins noirs (boutifare)",
+      "8 fonds d'artichauts violets",
+      "12 tiges d'asperges vertes",
+      "4 tiges d'oignons tendres (cébettes)"
+    ],
+    steps: [
+      "Préparer les légumes : ôter les feuilles dures des artichauts, couper les fonds en quartiers et les citronner. Casser la base des asperges, couper en tronçons de 3 cm (réserver les pointes). Émincer les oignons tendres en rondelles de 0,5 cm, tiges vertes comprises.",
+      "Préparer les charcuteries : couper la ventrèche en dés de 1,5 cm, la saucisse en rondelles de 1,5 cm, le boudin en tranches de 1,5 cm (retirer la peau délicatement). Réserver le boudin à part.",
+      "Battre les 16 œufs longuement (2 min minimum) dans un grand saladier. Poivrer généreusement, saler très légèrement (la ventrèche est salée !), ajouter le persil ciselé. Mélanger.",
+      "Précuire les asperges : plonger les tronçons 2 min dans l'eau bouillante salée, ajouter les pointes, cuire 1 min de plus. Égoutter et plonger dans l'eau froide. Elles doivent rester croquantes.",
+      "Chauffer la paellera 42 cm à feu moyen-vif avec les 4 c. à soupe d'huile d'olive. L'huile doit être chaude et très fluide.",
+      "Cuire la ventrèche (5–6 min, feu moyen-vif) : en une seule couche, remuer régulièrement. Elle doit être dorée, pas sèche. Garder le gras rendu.",
+      "Ajouter la saucisse fraîche (6–7 min, feu moyen) : dorer sur les deux faces, vérifier la cuisson à cœur en coupant une rondelle.",
+      "Ajouter le boudin (2–3 min, feu doux) : juste réchauffer et colorer légèrement, manipuler très délicatement. Réserver toutes les charcuteries sur une assiette. Garder le gras.",
+      "Faire suer les oignons dans le gras (5 min, feu doux) : translucides et fondants, sans coloration. Ajouter 1 c. à soupe d'eau si ça accroche.",
+      "Ajouter les artichauts (6–7 min, feu doux-moyen) : ajouter 2 c. à soupe d'eau, couvrir 2 min, puis découvrir et poursuivre 4–5 min. Tendres mais fermes.",
+      "Mise en place finale (2 min) : remettre les charcuteries et les asperges. Répartir uniformément sur toute la surface — crucial pour une cuisson homogène.",
+      "Couler les œufs en filet circulaire du bord vers le centre. Secouer la paellera pour infiltrer l'œuf partout. Laisser prendre 2 min à découvert, ne pas toucher.",
+      "Cuisson couverte — PHASE CLÉ (8–10 min, feu TRÈS DOUX) : poser le couvercle bombé ou sceller avec de l'alu. Ne pas ouvrir avant 8 min. Le dessus doit être mat et ne plus briller. Si encore liquide au centre, 2 min de plus.",
+      "Repos et service (3–4 min, feu éteint) : retirer du feu, ôter le couvercle. Laisser reposer. Secouer la paellera : l'omelette doit glisser. Servir directement dans la paellera — c'est la tradition !"
+    ],
+    note: "La ventrèche rend assez de gras pour cuire tous les ingrédients — ne pas le jeter. Le couvercle bombé est préférable : la condensation retombe sur les bords. Se déguste exclusivement chaude. Prévoir du pain de campagne catalan. Vin : Côtes du Roussillon blanc ou Collioure rouge léger.",
+    variants: []
+  }
+];
+
+const LINKS = [
+  { name: "Bocuse — Recettes classiques", url: "https://www.bocuse.fr/recettes", category: "chefs" },
+  { name: "Ducasse — Techniques & recettes", url: "https://www.alain-ducasse.com/fr/recettes", category: "chefs" },
+  { name: "Les 5 sauces mères", url: "https://fr.wikipedia.org/wiki/Sauce_m%C3%A8re", category: "bases" },
+  { name: "Guide des cuissons", url: "https://www.marmiton.org/magazine/diaporammes-cuisine_les-modes-de-cuisson_1.aspx", category: "bases" }
+];
+
+// ==================== STATE ====================
+let currentRecipeId = null;
+let currentVariantId = null;
+let currentServings = null;
+let baseServings = null;
+let timerInterval = null;
+let timerSeconds = 0;
+let timerRunning = false;
+let checkedIngredients = {};
+
+// ==================== NAVIGATION ====================
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  
+  if (view === 'detail') {
+    document.getElementById('view-detail').classList.add('active');
+    document.querySelector('nav button[data-view="list"]').classList.add('active');
+  } else {
+    document.getElementById('view-' + view).classList.add('active');
+    document.querySelector('nav button[data-view="' + view + '"]').classList.add('active');
+  }
+  
+  if (view === 'list') renderList();
+  if (view === 'links') renderLinks();
+  if (view === 'edit') renderEditList();
+  
+  window.scrollTo(0, 0);
+}
+
+// ==================== LIST ====================
+function renderList() {
+  const grid = document.getElementById('recipe-grid');
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  
+  const filtered = RECIPES.filter(r => r.name.toLowerCase().includes(q));
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽️</div><p>Aucune recette trouvée</p></div>';
+    return;
+  }
+  
+  grid.innerHTML = filtered.map(r => {
+    const badge = r.type === 'perso' ? 'badge-perso' : r.type === 'chef' ? 'badge-chef' : 'badge-basique';
+    const label = r.type === 'perso' ? 'Perso' : r.type === 'chef' ? 'Chef' : 'Base';
+    const varCount = r.variants ? r.variants.length : 0;
+    return `
+      <div class="recipe-card" onclick="openRecipe(${r.id})">
+        <div class="rc-emoji">${r.emoji}</div>
+        <div class="rc-info">
+          <div class="rc-name">${r.name}</div>
+          <div class="rc-meta">
+            <span>⏱ ${r.time} min</span>
+            <span>👥 ${r.servings}</span>
+            <span class="rc-badge ${badge}">${label}</span>
+          </div>
+          ${varCount > 0 ? `<div class="variant-indicator">↳ ${varCount} variante${varCount>1?'s':''}</div>` : ''}
+        </div>
+        <span class="rc-arrow">›</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterRecipes() { renderList(); }
+
+// ==================== DETAIL ====================
+function openRecipe(id, variantId) {
+  const recipe = RECIPES.find(r => r.id === id);
+  if (!recipe) return;
+  
+  currentRecipeId = id;
+  currentVariantId = variantId || null;
+  
+  let data = recipe;
+  let isVariant = false;
+  if (variantId) {
+    const v = recipe.variants.find(v => v.id === variantId);
+    if (v) {
+      data = { ...recipe, ...v, emoji: recipe.emoji };
+      isVariant = true;
+    }
+  }
+  
+  baseServings = data.servings;
+  currentServings = data.servings;
+  checkedIngredients = {};
+  
+  // Reset timer
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = 0;
+  
+  document.getElementById('detail-title', data.name);
+  
+  renderDetail(data, recipe, isVariant);
+  switchView('detail');
+}
+
+function renderDetail(data, parentRecipe, isVariant) {
+  const titleEl = document.getElementById('detail-title');
+  titleEl.textContent = data.emoji + ' ' + data.name;
+  
+  const c = document.getElementById('detail-content');
+  const badge = data.type === 'perso' ? 'badge-perso' : data.type === 'chef' ? 'badge-chef' : 'badge-basique';
+  const label = data.type === 'perso' ? 'Perso' : data.type === 'chef' ? 'Chef' : 'Base';
+  
+  let html = '';
+  
+  // Variant banner
+  if (isVariant && data.changes) {
+    html += `<div class="note-box">↳ Variante — ${data.changes}</div>`;
+  }
+  
+  // Meta
+  html += `
+    <div class="detail-meta">
+      <div class="dm-item"><span class="dm-icon">⏱</span> ${data.time} min</div>
+      <div class="dm-item">
+        <span class="dm-icon">👥</span>
+        <div class="portions-ctrl">
+          <button onclick="adjustPortions(-1)">−</button>
+          <span id="portions-display">${currentServings}</span>
+          <button onclick="adjustPortions(1)">+</button>
+        </div>
+      </div>
+      <div class="dm-item"><span class="rc-badge ${badge}">${label}</span></div>
+    </div>
+  `;
+  
+  // Timer
+  html += `
+    <div class="timer-bar" id="timer-bar">
+      <div class="timer-input-wrap">
+        <input type="number" id="timer-input" value="10" min="1" max="999" style="width:50px">
+        <span>min</span>
+      </div>
+      <div class="timer-display" id="timer-display">00:00</div>
+      <button class="timer-start" id="timer-start-btn" onclick="toggleTimer()">▶</button>
+      <button class="timer-reset" onclick="resetTimer()">↺</button>
+    </div>
+  `;
+  
+  // Note
+  if (data.note) {
+    html += `<div class="note-box">💡 ${data.note}</div>`;
+  }
+  
+  // Ingredients
+  html += `<div class="section-title">🛒 Ingrédients</div>`;
+  html += `<ul class="ingredient-list" id="ingredient-list">`;
+  data.ingredients.forEach((ing, i) => {
+    html += `
+      <li>
+        <input type="checkbox" id="ing-${i}" onchange="toggleIngredient(${i}, this)">
+        <label for="ing-${i}" id="ing-label-${i}">${scaleIngredient(ing)}</label>
+      </li>
+    `;
+  });
+  html += `</ul>`;
+  
+  // Steps
+  html += `<div class="section-title">👨‍🍳 Préparation</div>`;
+  html += `<ol class="step-list">`;
+  data.steps.forEach((step, i) => {
+    html += `
+      <li>
+        <span class="step-num">${i + 1}</span>
+        <span class="step-text">${step}</span>
+      </li>
+    `;
+  });
+  html += `</ol>`;
+  
+  // Variants
+  if (!isVariant && parentRecipe.variants && parentRecipe.variants.length > 0) {
+    html += `<div class="section-title">🔀 Variantes</div>`;
+    html += `<div class="variant-list">`;
+    parentRecipe.variants.forEach(v => {
+      html += `
+        <div class="variant-card" onclick="openRecipe(${parentRecipe.id}, ${v.id})">
+          <h4>${v.name}</h4>
+          <p>${v.changes}</p>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  
+  // Back to original if variant
+  if (isVariant) {
+    html += `
+      <div style="margin-top:20px">
+        <button class="btn btn-secondary btn-block" onclick="openRecipe(${parentRecipe.id})">
+          ← Retour à la recette originale
+        </button>
+      </div>
+    `;
+  }
+  
+  // Modification form
+  html += `
+    <div class="modif-form">
+      <h3>📝 Modification en cuisine</h3>
+      <div class="form-group">
+        <textarea id="modif-text" placeholder="Ex: cuisson 2 min de plus, ajout de thym…" rows="3"></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="sendModif()">Envoyer par email</button>
+    </div>
+  `;
+  
+  c.innerHTML = html;
+}
+
+// ==================== PORTIONS ====================
+function adjustPortions(delta) {
+  const newVal = currentServings + delta;
+  if (newVal < 1 || newVal > 50) return;
+  currentServings = newVal;
+  document.getElementById('portions-display').textContent = currentServings;
+  updateIngredientDisplays();
+}
+
+function scaleIngredient(ing) {
+  if (!baseServings || !currentServings) return ing;
+  const ratio = currentServings / baseServings;
+  return ing.replace(/(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|l|c\.\s*à\s*soupe|c\.\s*à\s*café|pièces?|tiges?|fonds?|œufs?|botte)/gi, (match, num, unit) => {
+    const n = parseFloat(num.replace(',', '.'));
+    let scaled = n * ratio;
+    if (scaled === Math.round(scaled)) scaled = Math.round(scaled);
+    else scaled = Math.round(scaled * 10) / 10;
+    return scaled + ' ' + unit;
+  });
+}
+
+function updateIngredientDisplays() {
+  const recipe = getActiveRecipeData();
+  if (!recipe) return;
+  recipe.ingredients.forEach((ing, i) => {
+    const label = document.getElementById('ing-label-' + i);
+    if (label) {
+      label.textContent = scaleIngredient(ing);
+      if (checkedIngredients[i]) label.classList.add('checked');
+    }
+  });
+}
+
+function getActiveRecipeData() {
+  const recipe = RECIPES.find(r => r.id === currentRecipeId);
+  if (!recipe) return null;
+  if (currentVariantId) {
+    const v = recipe.variants.find(v => v.id === currentVariantId);
+    return v ? { ...recipe, ...v } : recipe;
+  }
+  return recipe;
+}
+
+// ==================== INGREDIENTS CHECK ====================
+function toggleIngredient(i, cb) {
+  const label = document.getElementById('ing-label-' + i);
+  if (cb.checked) {
+    label.classList.add('checked');
+    checkedIngredients[i] = true;
+  } else {
+    label.classList.remove('checked');
+    delete checkedIngredients[i];
+  }
+}
+
+// ==================== TIMER ====================
+function toggleTimer() {
+  if (timerRunning) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+}
+
+function startTimer() {
+  if (timerSeconds === 0) {
+    const mins = parseInt(document.getElementById('timer-input').value) || 10;
+    timerSeconds = mins * 60;
+  }
+  timerRunning = true;
+  const btn = document.getElementById('timer-start-btn');
+  btn.textContent = '⏸';
+  btn.className = 'timer-pause';
+  
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      btn.textContent = '▶';
+      btn.className = 'timer-start';
+      timerAlert();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  const btn = document.getElementById('timer-start-btn');
+  btn.textContent = '▶';
+  btn.className = 'timer-start';
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = 0;
+  const btn = document.getElementById('timer-start-btn');
+  btn.textContent = '▶';
+  btn.className = 'timer-start';
+  const d = document.getElementById('timer-display');
+  d.textContent = '00:00';
+  d.classList.remove('timer-alert');
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timer-display').textContent = 
+    String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function timerAlert() {
+  const d = document.getElementById('timer-display');
+  d.textContent = "⏰ Terminé !";
+  d.classList.add('timer-alert');
+  
+  // Vibrate if available
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+  
+  // Sound alert
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 300, 600].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.value = 0.3;
+      osc.start(ctx.currentTime + delay / 1000);
+      osc.stop(ctx.currentTime + delay / 1000 + 0.15);
+    });
+  } catch(e) {}
+}
+
+// ==================== SEND MODIF ====================
+function sendModif() {
+  const text = document.getElementById('modif-text').value.trim();
+  if (!text) { showToast('Écris ta modification d\'abord !'); return; }
+  
+  const recipe = getActiveRecipeData();
+  const subject = encodeURIComponent('Modif recette : ' + recipe.name);
+  const body = encodeURIComponent('Recette : ' + recipe.name + '\n\nModification :\n' + text + '\n\n— Envoyé depuis l\'app Recettes');
+  
+  window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+  showToast('Email prêt à envoyer');
+}
+
+// ==================== LINKS ====================
+function renderLinks() {
+  const c = document.getElementById('links-content');
+  
+  const chefs = LINKS.filter(l => l.category === 'chefs');
+  const bases = LINKS.filter(l => l.category === 'bases');
+  
+  let html = '';
+  
+  if (chefs.length) {
+    html += `<div class="link-category"><h3>👨‍🍳 Grands Chefs</h3>`;
+    chefs.forEach(l => {
+      html += `<div class="link-item"><a href="${l.url}" target="_blank">${l.name}</a></div>`;
+    });
+    html += `</div>`;
+  }
+  
+  if (bases.length) {
+    html += `<div class="link-category"><h3>📚 Bases & Techniques</h3>`;
+    bases.forEach(l => {
+      html += `<div class="link-item"><a href="${l.url}" target="_blank">${l.name}</a></div>`;
+    });
+    html += `</div>`;
+  }
+  
+  if (!chefs.length && !bases.length) {
+    html = '<div class="empty-state"><div class="empty-icon">🔗</div><p>Aucun lien enregistré</p></div>';
+  }
+  
+  c.innerHTML = html;
+}
+
+// ==================== EDIT ====================
+function renderEditList() {
+  const c = document.getElementById('edit-content');
+  
+  let html = `
+    <button class="btn btn-primary btn-block" onclick="openEditForm()" style="margin-bottom:16px">
+      + Nouvelle recette
+    </button>
+    <div class="section-title">Recettes existantes</div>
+    <div class="recipe-grid">
+  `;
+  
+  RECIPES.forEach(r => {
+    html += `
+      <div class="recipe-card" onclick="openEditForm(${r.id})">
+        <div class="rc-emoji">${r.emoji}</div>
+        <div class="rc-info">
+          <div class="rc-name">${r.name}</div>
+          <div class="rc-meta"><span>Modifier</span></div>
+        </div>
+        <span class="rc-arrow">›</span>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  
+  // Link management
+  html += `
+    <div class="section-title" style="margin-top:24px">Liens</div>
+    <button class="btn btn-secondary btn-block" onclick="openLinkForm()">+ Nouveau lien</button>
+  `;
+  
+  c.innerHTML = html;
+}
+
+function editCurrentRecipe() {
+  if (currentRecipeId) openEditForm(currentRecipeId);
+}
+
+function openEditForm(recipeId) {
+  const recipe = recipeId ? RECIPES.find(r => r.id === recipeId) : null;
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modal-body');
+  
+  body.innerHTML = `
+    <h3>
+      ${recipe ? 'Modifier' : 'Nouvelle recette'}
+      <button class="close-modal" onclick="closeModal()">✕</button>
+    </h3>
+    <div class="form-group">
+      <label>Emoji</label>
+      <input type="text" id="f-emoji" value="${recipe ? recipe.emoji : '🍽️'}" maxlength="4">
+    </div>
+    <div class="form-group">
+      <label>Nom</label>
+      <input type="text" id="f-name" value="${recipe ? recipe.name : ''}" placeholder="Nom de la recette">
+    </div>
+    <div class="form-group">
+      <label>Temps (minutes)</label>
+      <input type="number" id="f-time" value="${recipe ? recipe.time : 30}" min="1">
+    </div>
+    <div class="form-group">
+      <label>Portions</label>
+      <input type="number" id="f-servings" value="${recipe ? recipe.servings : 4}" min="1">
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <select id="f-type">
+        <option value="perso" ${recipe && recipe.type==='perso'?'selected':''}>Perso</option>
+        <option value="chef" ${recipe && recipe.type==='chef'?'selected':''}>Grand Chef</option>
+        <option value="basique" ${recipe && recipe.type==='basique'?'selected':''}>Basique</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Ingrédients (un par ligne)</label>
+      <textarea id="f-ingredients" rows="8" placeholder="200g farine&#10;3 œufs&#10;…">${recipe ? recipe.ingredients.join('\n') : ''}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Étapes (une par ligne)</label>
+      <textarea id="f-steps" rows="10" placeholder="Préchauffer le four…&#10;Mélanger…">${recipe ? recipe.steps.join('\n') : ''}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Note / Astuce (optionnel)</label>
+      <textarea id="f-note" rows="3">${recipe ? (recipe.note || '') : ''}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" style="flex:1" onclick="saveRecipe(${recipeId || 'null'})">${recipe ? 'Enregistrer' : 'Ajouter'}</button>
+      ${recipe ? `<button class="btn btn-secondary" onclick="addVariantForm(${recipeId})">+ Variante</button>` : ''}
+    </div>
+    ${recipe ? `<button class="btn btn-danger btn-block" style="margin-top:8px" onclick="deleteRecipe(${recipeId})">Supprimer</button>` : ''}
+  `;
+  
+  modal.classList.add('show');
+}
+
+function saveRecipe(id) {
+  const emoji = document.getElementById('f-emoji').value.trim() || '🍽️';
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('Le nom est obligatoire'); return; }
+  
+  const data = {
+    emoji,
+    name,
+    time: parseInt(document.getElementById('f-time').value) || 30,
+    servings: parseInt(document.getElementById('f-servings').value) || 4,
+    type: document.getElementById('f-type').value,
+    ingredients: document.getElementById('f-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    steps: document.getElementById('f-steps').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    note: document.getElementById('f-note').value.trim(),
+  };
+  
+  if (id) {
+    const idx = RECIPES.findIndex(r => r.id === id);
+    if (idx > -1) {
+      data.id = id;
+      data.variants = RECIPES[idx].variants || [];
+      RECIPES[idx] = data;
+    }
+  } else {
+    data.id = RECIPES.length ? Math.max(...RECIPES.map(r=>r.id)) + 1 : 1;
+    data.variants = [];
+    RECIPES.push(data);
+  }
+  
+  closeModal();
+  renderEditList();
+  showToast(id ? 'Recette modifiée' : 'Recette ajoutée');
+}
+
+function deleteRecipe(id) {
+  if (!confirm('Supprimer cette recette ?')) return;
+  const idx = RECIPES.findIndex(r => r.id === id);
+  if (idx > -1) RECIPES.splice(idx, 1);
+  closeModal();
+  renderEditList();
+  showToast('Recette supprimée');
+}
+
+function addVariantForm(parentId) {
+  const parent = RECIPES.find(r => r.id === parentId);
+  if (!parent) return;
+  
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <h3>
+      Nouvelle variante
+      <button class="close-modal" onclick="closeModal()">✕</button>
+    </h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Variante de : ${parent.emoji} ${parent.name}</p>
+    <div class="form-group">
+      <label>Nom de la variante</label>
+      <input type="text" id="v-name" placeholder="Ex: Carbonara aux courgettes">
+    </div>
+    <div class="form-group">
+      <label>Modifications (résumé court)</label>
+      <input type="text" id="v-changes" placeholder="Ex: Substitution guanciale → courgettes">
+    </div>
+    <div class="form-group">
+      <label>Ingrédients modifiés (un par ligne)</label>
+      <textarea id="v-ingredients" rows="6">${parent.ingredients.join('\n')}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Étapes modifiées (une par ligne)</label>
+      <textarea id="v-steps" rows="8">${parent.steps.join('\n')}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Note (optionnel)</label>
+      <textarea id="v-note" rows="2"></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveVariant(${parentId})">Ajouter la variante</button>
+  `;
+}
+
+function saveVariant(parentId) {
+  const name = document.getElementById('v-name').value.trim();
+  if (!name) { showToast('Le nom est obligatoire'); return; }
+  
+  const parent = RECIPES.find(r => r.id === parentId);
+  if (!parent.variants) parent.variants = [];
+  
+  const varId = parent.variants.length ? Math.max(...parent.variants.map(v=>v.id)) + 1 : parentId * 100 + 1;
+  
+  parent.variants.push({
+    id: varId,
+    name,
+    changes: document.getElementById('v-changes').value.trim(),
+    ingredients: document.getElementById('v-ingredients').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    steps: document.getElementById('v-steps').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    note: document.getElementById('v-note').value.trim(),
+  });
+  
+  closeModal();
+  renderEditList();
+  showToast('Variante ajoutée');
+}
+
+// ==================== LINK FORM ====================
+function openLinkForm() {
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modal-body');
+  
+  body.innerHTML = `
+    <h3>
+      Nouveau lien
+      <button class="close-modal" onclick="closeModal()">✕</button>
+    </h3>
+    <div class="form-group">
+      <label>Nom</label>
+      <input type="text" id="l-name" placeholder="Bocuse — Soupe aux truffes">
+    </div>
+    <div class="form-group">
+      <label>URL</label>
+      <input type="url" id="l-url" placeholder="https://…">
+    </div>
+    <div class="form-group">
+      <label>Catégorie</label>
+      <select id="l-cat">
+        <option value="chefs">Grands Chefs</option>
+        <option value="bases">Bases & Techniques</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveLink()">Ajouter</button>
+  `;
+  
+  modal.classList.add('show');
+}
+
+function saveLink() {
+  const name = document.getElementById('l-name').value.trim();
+  const url = document.getElementById('l-url').value.trim();
+  if (!name || !url) { showToast('Nom et URL obligatoires'); return; }
+  
+  LINKS.push({ name, url, category: document.getElementById('l-cat').value });
+  closeModal();
+  renderEditList();
+  showToast('Lien ajouté');
+}
+
+// ==================== EXPORT ====================
+function exportHTML() {
+  // Serialize current state back into the script
+  const scriptTag = document.querySelector('script');
+  const html = document.documentElement.outerHTML;
+  
+  // Update RECIPES and LINKS in the HTML
+  let exportHTML = '<!DOCTYPE html>\n' + html;
+  
+  // Replace data
+  const recipesJSON = JSON.stringify(RECIPES, null, 2);
+  const linksJSON = JSON.stringify(LINKS, null, 2);
+  
+  exportHTML = exportHTML.replace(
+    /const RECIPES = \[[\s\S]*?\];/,
+    'const RECIPES = ' + recipesJSON + ';'
+  );
+  exportHTML = exportHTML.replace(
+    /const LINKS = \[[\s\S]*?\];/,
+    'const LINKS = ' + linksJSON + ';'
+  );
+  
+  const blob = new Blob([exportHTML], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'recettes.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Fichier exporté !');
+}
+
+// ==================== MODAL ====================
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ==================== TOAST ====================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ==================== INIT ====================
+renderList();
+</script>
+</body>
+</html>
